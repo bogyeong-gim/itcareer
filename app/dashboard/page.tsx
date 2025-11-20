@@ -203,7 +203,7 @@ export default function DashboardPage() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <Link
-            href="/diagnosis"
+            href="/roadmap-generate"
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
           >
             <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
@@ -323,7 +323,7 @@ export default function DashboardPage() {
               <div className="text-center py-8">
                 <p className="text-gray-600 mb-4">아직 활동 내역이 없습니다.</p>
                 <Link
-                  href="/diagnosis"
+                  href="/roadmap-generate"
                   className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
                 >
                   역량 진단 시작하기

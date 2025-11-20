@@ -15,7 +15,6 @@ export default function ModulePage() {
   const router = useRouter();
   const moduleId = params.id as string;
   const [moduleContent, setModuleContent] = useState<ModuleContent | null>(null);
-  const [activeSection, setActiveSection] = useState<string | null>(null);
   const [showTutor, setShowTutor] = useState(false);
   const [tutorQuestion, setTutorQuestion] = useState('');
   const [tutorResponse, setTutorResponse] = useState('');
@@ -154,35 +153,25 @@ export default function ModulePage() {
                 <div className="space-y-6">
                   {moduleContent.sections.map((section) => (
                     <div key={section.id} className="border-b border-gray-200 pb-6 last:border-0">
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <h2 className="text-xl font-semibold text-gray-900">{section.title}</h2>
+                          {completedSections.includes(section.id) && (
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-4 prose max-w-none">
+                        <pre className="whitespace-pre-wrap text-gray-700 font-sans bg-gray-50 p-4 rounded-lg">
+                          {section.content}
+                        </pre>
                         <button
-                          onClick={() => setActiveSection(activeSection === section.id ? null : section.id)}
-                          className="w-full text-left flex items-center justify-between"
+                          onClick={() => handleSectionComplete(section.id)}
+                          className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
                         >
-                          <div className="flex items-center gap-3">
-                            <h2 className="text-xl font-semibold text-gray-900">{section.title}</h2>
-                            {completedSections.includes(section.id) && (
-                              <CheckCircle className="h-5 w-5 text-green-500" />
-                            )}
-                          </div>
-                          <span className="text-gray-400">
-                            {activeSection === section.id ? '▼' : '▶'}
-                          </span>
+                          {completedSections.includes(section.id) ? '✓ 완료됨' : '완료 표시'}
                         </button>
                       </div>
-                      {activeSection === section.id && (
-                        <div className="mt-4 prose max-w-none">
-                          <pre className="whitespace-pre-wrap text-gray-700 font-sans bg-gray-50 p-4 rounded-lg">
-                            {section.content}
-                          </pre>
-                          <button
-                            onClick={() => handleSectionComplete(section.id)}
-                            className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-                          >
-                            {completedSections.includes(section.id) ? '✓ 완료됨' : '완료 표시'}
-                          </button>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>

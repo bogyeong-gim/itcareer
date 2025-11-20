@@ -15,6 +15,72 @@ export async function generateTutorResponse(
   
   const lowerQuestion = question.toLowerCase();
   
+  // 로드맵 생성 컨텍스트 확인
+  const isRoadmapContext = context?.includes('로드맵') || context?.includes('roadmap');
+  
+  // 로드맵 생성 관련 질문에 대한 응답
+  if (isRoadmapContext) {
+    if (lowerQuestion.includes('성능') || lowerQuestion.includes('개선') || lowerQuestion.includes('특정 작업')) {
+      return `좋은 목표입니다! 특정 작업에서의 성능 개선을 목표로 하시는군요.
+
+**로드맵 제안:**
+1. 현재 성능 기준선을 측정하고 벤치마크를 설정하세요
+2. 해당 작업에 특화된 데이터셋을 준비하세요
+3. Fine-tuning 전략을 수립하세요 (전체 모델 vs LoRA 등)
+4. 평가 지표를 명확히 정의하세요
+
+이런 목표를 바탕으로 맞춤형 학습 경로를 제안해드리겠습니다. 더 구체적인 정보가 있으시면 알려주세요!`;
+    }
+    
+    if (lowerQuestion.includes('도메인') || lowerQuestion.includes('니치') || lowerQuestion.includes('특정 도메인')) {
+      return `도메인 특화 모델을 만드는 것은 흥미로운 도전입니다!
+
+**도메인 적응 전략:**
+1. 도메인별 전문 데이터 수집 및 정제
+2. 도메인 전문 용어와 컨텍스트 이해
+3. 도메인 특화 평가 방법론 개발
+4. 일반 모델과의 성능 비교
+
+어떤 도메인에 관심이 있으신가요? 더 구체적인 정보를 주시면 더 정확한 로드맵을 제안해드릴 수 있습니다.`;
+    }
+    
+    if (lowerQuestion.includes('비용') || lowerQuestion.includes('크기') || lowerQuestion.includes('추론')) {
+      return `모델 최적화는 실무에서 매우 중요한 요소입니다!
+
+**최적화 전략:**
+1. 모델 압축 기법 학습 (양자화, 프루닝 등)
+2. 효율적인 아키텍처 탐색
+3. 추론 최적화 기법 적용
+4. 하드웨어별 최적화 방법
+
+이런 최적화 목표를 바탕으로 효율적인 학습 경로를 제안해드리겠습니다.`;
+    }
+    
+    if (lowerQuestion.includes('연구') || lowerQuestion.includes('탐색') || lowerQuestion.includes('기회')) {
+      return `연구와 탐색은 혁신의 시작입니다!
+
+**연구 로드맵 제안:**
+1. 최신 논문 및 연구 동향 파악
+2. 실험 설계 및 검증 방법론 학습
+3. 오픈소스 도구 및 프레임워크 활용
+4. 커뮤니티 참여 및 협업
+
+어떤 연구 분야에 관심이 있으신가요? 더 구체적인 방향을 알려주시면 맞춤형 연구 로드맵을 제안해드리겠습니다.`;
+    }
+    
+    if (lowerQuestion.includes('애플리케이션') || lowerQuestion.includes('앱') || lowerQuestion.includes('커스텀')) {
+      return `커스텀 애플리케이션 구축은 실무 경험을 쌓는 좋은 방법입니다!
+
+**애플리케이션 개발 로드맵:**
+1. 요구사항 분석 및 설계
+2. 모델 통합 및 API 개발
+3. 사용자 인터페이스 구축
+4. 배포 및 모니터링
+
+어떤 종류의 애플리케이션을 만들고 싶으신가요? 더 구체적인 정보를 주시면 단계별 학습 경로를 제안해드리겠습니다.`;
+    }
+  }
+  
   // 키워드 기반 응답 생성
   if (lowerQuestion.includes('기초') || lowerQuestion.includes('시작') || lowerQuestion.includes('처음')) {
     return `좋은 질문입니다! 기초부터 차근차근 시작하는 것이 중요합니다.

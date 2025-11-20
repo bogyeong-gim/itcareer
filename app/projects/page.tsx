@@ -198,7 +198,7 @@ export default function ProjectsPage() {
               역량 진단을 완료하면 더 정확한 프로젝트 추천을 받을 수 있습니다.
             </p>
             <Link
-              href="/diagnosis"
+              href="/roadmap-generate"
               className="inline-block bg-yellow-600 text-white px-6 py-3 rounded-lg hover:bg-yellow-700"
             >
               역량 진단 시작하기

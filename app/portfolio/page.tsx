@@ -81,7 +81,7 @@ export default function PortfolioPage() {
         <div className="text-center">
           <p className="text-gray-600 mb-4">포트폴리오를 생성할 수 없습니다.</p>
           <Link
-            href="/diagnosis"
+            href="/roadmap-generate"
             className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
           >
             역량 진단 시작하기

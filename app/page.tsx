@@ -13,7 +13,7 @@ export default function Home() {
               <span className="ml-2 text-xl font-semibold text-gray-900">커리어 플랫폼</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/diagnosis" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+              <Link href="/roadmap-generate" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                 역량 진단
               </Link>
               <Link href="/login" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
@@ -40,10 +40,10 @@ export default function Home() {
           </p>
           <div className="flex justify-center space-x-4">
             <Link
-              href="/diagnosis"
+              href="/roadmap-generate"
               className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-blue-700 transition-colors inline-flex items-center"
             >
-              무료 역량 진단 시작하기
+              무료로 나만의 로드맵 받아보기
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
             <Link
