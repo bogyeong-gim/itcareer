@@ -1,9 +1,12 @@
 // 유틸리티 함수들
+import { User } from '@/types';
 
 /**
  * 로컬 스토리지에서 데이터 가져오기
  */
-export function getFromStorage<T>(key: string, defaultValue: T): T {
+export function getFromStorage<T>(key: string, defaultValue: null): T | null;
+export function getFromStorage<T>(key: string, defaultValue: T): T;
+export function getFromStorage<T>(key: string, defaultValue: T | null): T | null {
   if (typeof window === 'undefined') return defaultValue;
   
   try {
@@ -47,8 +50,8 @@ export function isLoggedIn(): boolean {
 /**
  * 현재 사용자 정보 가져오기
  */
-export function getCurrentUser() {
-  return getFromStorage('user', null);
+export function getCurrentUser(): User | null {
+  return getFromStorage<User>('user', null);
 }
 
 /**

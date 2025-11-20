@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, MessageSquare, BookOpen, CheckCircle } from 'lucide-react';
-import { ModuleContent, DiagnosisResult, Roadmap, RoadmapModule } from '@/types';
+import { ModuleContent, DiagnosisResult, Roadmap, RoadmapModule, TutorMessage } from '@/types';
 import { generateModuleContent } from '@/lib/content';
 import { getFromStorage, saveToStorage, getCurrentUser } from '@/lib/utils';
 import { startModuleLearning, completeSection, completeModule, getModuleLearningHistory } from '@/lib/learning-history';
@@ -118,7 +118,7 @@ export default function ModulePage() {
       
       // 메시지 저장
       const message = createTutorMessage(tutorQuestion, enhancedResponse, moduleId);
-      const allMessages = getFromStorage('tutorMessages', []);
+      const allMessages = getFromStorage<TutorMessage[]>('tutorMessages', []);
       allMessages.push(message);
       saveToStorage('tutorMessages', allMessages);
       
