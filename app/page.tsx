@@ -38,19 +38,13 @@ export default function Home() {
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
             AI 기반 역량 진단으로 현재 위치를 파악하고, 목표 직무까지의 개인화된 커리어 로드맵을 받아보세요.
           </p>
-          <div className="flex justify-center space-x-4">
+          <div className="flex justify-center">
             <Link
               href="/roadmap-generate"
               className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-blue-700 transition-colors inline-flex items-center"
             >
               무료로 나만의 로드맵 받아보기
               <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-            <Link
-              href="/about"
-              className="bg-white text-gray-700 px-8 py-3 rounded-lg text-lg font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
-            >
-              더 알아보기
             </Link>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { TutorMessage, ModuleContent } from '@/types';
 import { generateId } from './utils';
+import { fetchRelevantDocs, LibraryDoc } from './context7';
 
 /**
  * OpenAI API를 사용한 AI 응답 생성
@@ -7,7 +8,8 @@ import { generateId } from './utils';
 async function callOpenAIAPI(
   question: string,
   moduleContent: ModuleContent | null,
-  context?: string
+  context?: string,
+  libraryDocs?: LibraryDoc[]
 ): Promise<string> {
   const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
   const apiUrl = process.env.NEXT_PUBLIC_AI_API_URL || 'https://api.openai.com/v1/chat/completions';
@@ -16,9 +18,20 @@ async function callOpenAIAPI(
     throw new Error('OpenAI API 키가 설정되지 않았습니다.');
   }
 
+  // 라이브러리 문서가 있으면 컨텍스트에 추가
+  let libraryContext = '';
+  if (libraryDocs && libraryDocs.length > 0) {
+    libraryContext = '\n\n**참고 라이브러리 문서:**\n';
+    libraryDocs.forEach(doc => {
+      libraryContext += `\n[${doc.libraryName}]\n${doc.content.substring(0, 500)}...\n`;
+    });
+  }
+
   const systemPrompt = `당신은 친절하고 전문적인 AI 튜터입니다. 사용자의 질문에 대해 명확하고 도움이 되는 답변을 제공해주세요.
 ${moduleContent ? `현재 학습 중인 모듈: ${moduleContent.title}\n설명: ${moduleContent.description}` : ''}
-${context ? `컨텍스트: ${context}` : ''}`;
+${context ? `컨텍스트: ${context}` : ''}${libraryContext}
+
+위의 라이브러리 문서를 참고하여 정확하고 최신 정보를 바탕으로 답변해주세요.`;
 
   try {
     const response = await fetch(apiUrl, {
@@ -54,12 +67,22 @@ ${context ? `컨텍스트: ${context}` : ''}`;
 /**
  * AI Tutor 응답 생성
  * 환경 변수에 API 키가 설정되어 있으면 실제 API를 호출하고, 없으면 시뮬레이션 응답을 반환합니다.
+ * context7-mcp를 통해 관련 라이브러리 문서를 가져와서 답변의 정확도를 높입니다.
  */
 export async function generateTutorResponse(
   question: string,
   moduleContent: ModuleContent | null,
   context?: string
 ): Promise<string> {
+  // context7-mcp를 통해 관련 라이브러리 문서 가져오기
+  let libraryDocs: LibraryDoc[] = [];
+  try {
+    libraryDocs = await fetchRelevantDocs(question, context);
+  } catch (error) {
+    console.warn('라이브러리 문서 가져오기 실패:', error);
+    // 문서 가져오기 실패해도 계속 진행
+  }
+
   // 환경 변수 확인
   const enableAITutor = process.env.NEXT_PUBLIC_ENABLE_AI_TUTOR === 'true';
   const hasAPIKey = !!process.env.NEXT_PUBLIC_OPENAI_API_KEY;
@@ -67,10 +90,29 @@ export async function generateTutorResponse(
   // API 키가 있고 AI Tutor가 활성화되어 있으면 실제 API 호출
   if (enableAITutor && hasAPIKey) {
     try {
-      return await callOpenAIAPI(question, moduleContent, context);
+      return await callOpenAIAPI(question, moduleContent, context, libraryDocs);
     } catch (error) {
       console.warn('AI API 호출 실패, 시뮬레이션 모드로 전환:', error);
       // API 호출 실패 시 시뮬레이션 모드로 fallback
+    }
+  }
+
+  // 라이브러리 문서가 있으면 시뮬레이션 응답에 포함
+  if (libraryDocs.length > 0) {
+    const docContext = libraryDocs.map(doc => 
+      `**${doc.libraryName} 문서 참고:**\n${doc.content.substring(0, 300)}...`
+    ).join('\n\n');
+    
+    // 라이브러리 관련 질문인 경우 문서 기반 응답
+    const lowerQuestion = question.toLowerCase();
+    if (lowerQuestion.includes('react') || lowerQuestion.includes('next') || 
+        lowerQuestion.includes('vue') || lowerQuestion.includes('node') ||
+        lowerQuestion.includes('typescript') || lowerQuestion.includes('javascript')) {
+      return `질문해주셔서 감사합니다! 관련 라이브러리 문서를 참고하여 답변드리겠습니다.
+
+${docContext}
+
+위 문서를 바탕으로 답변드리면, 더 구체적인 질문이 있으시면 알려주세요!`;
     }
   }
 
@@ -240,11 +282,17 @@ export function createTutorMessage(
  */
 export function enhanceResponseWithContext(
   baseResponse: string,
-  moduleContent: ModuleContent | null
+  moduleContent: ModuleContent | null,
+  libraryDocs?: LibraryDoc[]
 ): string {
-  if (!moduleContent) return baseResponse;
+  if (!moduleContent && (!libraryDocs || libraryDocs.length === 0)) {
+    return baseResponse;
+  }
 
-  const contextInfo = `
+  let contextInfo = '';
+  
+  if (moduleContent) {
+    contextInfo += `
   
 **현재 학습 중인 모듈 정보:**
 - 모듈: ${moduleContent.title}
@@ -255,6 +303,14 @@ export function enhanceResponseWithContext(
 이 모듈의 주요 섹션:
 ${moduleContent.sections.map(s => `- ${s.title}`).join('\n')}
 `;
+  }
+
+  if (libraryDocs && libraryDocs.length > 0) {
+    contextInfo += `\n\n**참고 문서:**\n`;
+    libraryDocs.forEach(doc => {
+      contextInfo += `- ${doc.libraryName}: ${doc.content.substring(0, 100)}...\n`;
+    });
+  }
 
   return baseResponse + contextInfo;
 }

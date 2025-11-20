@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, BookOpen, CheckCircle, Clock, Target, ArrowUp, ExternalLink } from 'lucide-react';
 import { Roadmap, RoadmapModule, DiagnosisResult } from '@/types';
-import { generateRoadmap, calculateRoadmapProgress, generateDefaultRoadmap } from '@/lib/roadmap';
+import { generateRoadmap, generateRoadmapSync, calculateRoadmapProgress, generateDefaultRoadmap } from '@/lib/roadmap';
 import { getFromStorage, getCurrentUser, getLevelColor, getLevelLabel } from '@/lib/utils';
 
 export default function RoadmapPage() {
@@ -28,15 +28,30 @@ export default function RoadmapPage() {
         setDiagnosisResult(storedResult);
       }
     } else if (storedResult) {
-      // 진단 결과가 있으면 로드맵 생성
+      // 진단 결과가 있으면 로드맵 생성 (비동기 - context7 통합)
       setDiagnosisResult(storedResult);
       const user = getCurrentUser() as { id: string } | null;
-      const newRoadmap = generateRoadmap(storedResult, user?.id);
-      setRoadmap(newRoadmap);
-      setProgress(0);
       
-      // 로컬 스토리지에 저장
-      localStorage.setItem('roadmap', JSON.stringify(newRoadmap));
+      const loadRoadmap = async () => {
+        try {
+          const newRoadmap = await generateRoadmap(storedResult, user?.id);
+          setRoadmap(newRoadmap);
+          setProgress(0);
+          
+          // 로컬 스토리지에 저장
+          localStorage.setItem('roadmap', JSON.stringify(newRoadmap));
+        } catch (error) {
+          console.error('로드맵 생성 중 오류:', error);
+          // 오류 발생 시 동기 버전 사용 (fallback)
+          const { generateRoadmapSync } = await import('@/lib/roadmap');
+          const newRoadmap = generateRoadmapSync(storedResult, user?.id);
+          setRoadmap(newRoadmap);
+          setProgress(0);
+          localStorage.setItem('roadmap', JSON.stringify(newRoadmap));
+        }
+      };
+      
+      loadRoadmap();
     } else {
       // 진단 결과가 없으면 기본 로드맵 생성
       const user = getCurrentUser() as { id: string } | null;
@@ -141,11 +156,6 @@ export default function RoadmapPage() {
                               )}
                             </div>
 
-                            {/* Provider */}
-                            {module.provider && (
-                              <div className="text-xs text-gray-400 mb-2">{module.provider}</div>
-                            )}
-
                             {/* Korean Title */}
                             <h4 className="text-base font-medium text-gray-800 mb-2">
                               {module.title}
@@ -156,15 +166,17 @@ export default function RoadmapPage() {
                               {module.description}
                             </p>
 
-                            {/* Price & Action */}
-                            <div className="flex items-center justify-between">
-                              {module.price && module.price !== 0 && (
-                                <div className="text-base font-semibold text-gray-900">
-                                  {formatPrice(module.price)}
-                                </div>
-                              )}
+                            {/* Action */}
+                            <div className="flex items-center justify-end">
                               <Link
-                                href={`/module/${module.id}`}
+                                href={
+                                  module.id === 'ai-1' || 
+                                  module.title.includes('Fine-tuning') || 
+                                  module.title.includes('Fine tuning') ||
+                                  module.englishTitle?.includes('Fine-tuning')
+                                    ? '/fine-tuning'
+                                    : `/module/${module.id}`
+                                }
                                 className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
                               >
                                 더보기

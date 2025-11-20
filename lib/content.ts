@@ -1,9 +1,10 @@
 import { ModuleContent, ContentSection, DiagnosisResult } from '@/types';
+import { fetchRelevantDocs, extractLibraryNames } from './context7';
 
 /**
- * 모듈 ID에 따른 기본 콘텐츠 생성
+ * 모듈 ID에 따른 기본 콘텐츠 생성 (동기 버전 - 호환성 유지)
  */
-export function generateModuleContent(
+export function generateModuleContentSync(
   moduleId: string,
   diagnosisResult?: DiagnosisResult
 ): ModuleContent {
@@ -15,6 +16,75 @@ export function generateModuleContent(
   }
   
   return baseContent;
+}
+
+/**
+ * 모듈 ID에 따른 기본 콘텐츠 생성 (비동기 버전 - context7-mcp 통합)
+ * context7-mcp를 통해 관련 라이브러리 문서를 참조하여 콘텐츠를 보강합니다.
+ */
+export async function generateModuleContent(
+  moduleId: string,
+  diagnosisResult?: DiagnosisResult
+): Promise<ModuleContent> {
+  const baseContent = getBaseModuleContent(moduleId);
+  
+  // 진단 결과에서 관련 라이브러리 추출
+  let relevantLibraries: string[] = [];
+  if (diagnosisResult?.targetJob) {
+    relevantLibraries = extractLibraryNames(diagnosisResult.targetJob);
+  }
+  
+  // 모듈 콘텐츠에서도 라이브러리 추출
+  const moduleLibraries = extractLibraryNames(
+    baseContent.title + ' ' + baseContent.description + ' ' + 
+    baseContent.sections.map(s => s.content).join(' ')
+  );
+  relevantLibraries = [...new Set([...relevantLibraries, ...moduleLibraries])];
+  
+  // 관련 라이브러리 문서 가져오기
+  let libraryDocsContent = '';
+  if (relevantLibraries.length > 0) {
+    try {
+      const docs = await fetchRelevantDocs(
+        relevantLibraries.join(' '),
+        baseContent.title
+      );
+      
+      if (docs.length > 0) {
+        libraryDocsContent = '\n\n**추가 학습 자료 (최신 문서):**\n';
+        docs.forEach(doc => {
+          libraryDocsContent += `\n- **${doc.libraryName}**: ${doc.content.substring(0, 200)}...\n`;
+        });
+      }
+    } catch (error) {
+      console.warn('라이브러리 문서 가져오기 실패:', error);
+      // 문서 가져오기 실패해도 계속 진행
+    }
+  }
+  
+  // 라이브러리 문서가 있으면 첫 번째 섹션에 추가
+  let enhancedContent = baseContent;
+  if (libraryDocsContent && enhancedContent.sections.length > 0) {
+    enhancedContent = {
+      ...enhancedContent,
+      sections: enhancedContent.sections.map((section, index) => {
+        if (index === 0) {
+          return {
+            ...section,
+            content: section.content + libraryDocsContent
+          };
+        }
+        return section;
+      })
+    };
+  }
+  
+  // 진단 결과가 있으면 맞춤형으로 수정
+  if (diagnosisResult) {
+    return customizeContent(enhancedContent, diagnosisResult);
+  }
+  
+  return enhancedContent;
 }
 
 /**

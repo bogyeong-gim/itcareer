@@ -1,5 +1,6 @@
 import { Roadmap, RoadmapModule, DiagnosisResult, ModuleLevel } from '@/types';
 import { extractRequiredSkills } from './diagnosis';
+import { extractLibraryNames, fetchMultipleLibraryDocs } from './context7';
 
 /**
  * 직무별 특화 모듈 생성
@@ -66,9 +67,25 @@ function getJobSpecificModules(
     });
   }
 
-  if (job.includes('ai') || job.includes('ml') || job.includes('머신러닝')) {
+  if (job.includes('ai') || job.includes('ml') || job.includes('머신러닝') || job.includes('딥러닝') || job.includes('fine-tuning') || job.includes('fine tuning')) {
     modules.push({
       id: 'ai-1',
+      title: 'AI Fine-tuning',
+      englishTitle: 'AI Fine-tuning',
+      subtitle: 'Fundamentals of Deep Learning',
+      description: '딥러닝의 기본 개념부터 Fine-tuning까지 체계적으로 학습합니다. Neural Networks, CNNs, RNNs 등 핵심 개념을 다룹니다.',
+      duration: '16주',
+      level: baseLevel === 'beginner' ? 'intermediate' : 'advanced',
+      order: modules.length + 1,
+      completed: false,
+      skills: ['Neural Networks', 'CNNs', 'RNNs', 'Deep Learning', 'Fine-tuning', 'Transfer Learning'],
+      prerequisites: [],
+      provider: '인프런',
+      price: 200000
+    });
+    
+    modules.push({
+      id: 'ai-2',
       title: 'AI/ML 실무 프로젝트',
       englishTitle: 'AI/ML Practical Projects',
       subtitle: 'Machine Learning & Deep Learning',
@@ -78,7 +95,7 @@ function getJobSpecificModules(
       order: modules.length + 1,
       completed: false,
       skills: ['Machine Learning', 'Deep Learning', 'TensorFlow', 'PyTorch', 'Model Deployment'],
-      prerequisites: [],
+      prerequisites: ['ai-1'],
       provider: '인프런',
       price: 200000
     });
@@ -88,9 +105,58 @@ function getJobSpecificModules(
 }
 
 /**
- * 진단 결과를 기반으로 로드맵 생성
+ * 진단 결과를 기반으로 로드맵 생성 (동기 버전 - 호환성 유지)
  */
-export function generateRoadmap(result: DiagnosisResult, userId?: string): Roadmap {
+export function generateRoadmapSync(result: DiagnosisResult, userId?: string): Roadmap {
+  return generateRoadmapInternal(result, userId);
+}
+
+/**
+ * 진단 결과를 기반으로 로드맵 생성 (비동기 버전 - context7-mcp 통합)
+ * context7-mcp를 통해 기술 스택별 최신 문서를 참조하여 로드맵을 보강합니다.
+ */
+export async function generateRoadmap(result: DiagnosisResult, userId?: string): Promise<Roadmap> {
+  const skills = extractRequiredSkills(result);
+  const { targetJob } = result;
+  
+  // 목표 직무에서 관련 라이브러리 추출
+  const relevantLibraries = extractLibraryNames(targetJob || '');
+  
+  // 관련 라이브러리 문서 가져오기
+  let libraryDocsInfo = '';
+  if (relevantLibraries.length > 0) {
+    try {
+      const docs = await fetchMultipleLibraryDocs(relevantLibraries, targetJob);
+      
+      if (docs.length > 0) {
+        libraryDocsInfo = '\n\n**추천 학습 자료 (최신 문서):**\n';
+        docs.forEach(doc => {
+          libraryDocsInfo += `- ${doc.libraryName}: 최신 문서 참고 권장\n`;
+        });
+      }
+    } catch (error) {
+      console.warn('로드맵 생성 시 라이브러리 문서 가져오기 실패:', error);
+      // 문서 가져오기 실패해도 계속 진행
+    }
+  }
+  
+  const roadmap = generateRoadmapInternal(result, userId);
+  
+  // 라이브러리 문서 정보가 있으면 첫 번째 모듈 설명에 추가
+  if (libraryDocsInfo && roadmap.modules.length > 0) {
+    roadmap.modules[0] = {
+      ...roadmap.modules[0],
+      description: roadmap.modules[0].description + libraryDocsInfo
+    };
+  }
+  
+  return roadmap;
+}
+
+/**
+ * 로드맵 생성 내부 로직
+ */
+function generateRoadmapInternal(result: DiagnosisResult, userId?: string): Roadmap {
   const skills = extractRequiredSkills(result);
   const { targetJob, experience, learningHours } = result;
 

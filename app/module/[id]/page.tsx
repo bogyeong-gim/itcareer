@@ -24,9 +24,21 @@ export default function ModulePage() {
     // 진단 결과 가져오기
     const diagnosisResult = getFromStorage<DiagnosisResult>('diagnosisResults', null);
     
-    // 모듈 콘텐츠 생성
-    const content = generateModuleContent(moduleId, diagnosisResult || undefined);
-    setModuleContent(content);
+    // 모듈 콘텐츠 생성 (비동기 - context7 통합)
+    const loadContent = async () => {
+      try {
+        const content = await generateModuleContent(moduleId, diagnosisResult || undefined);
+        setModuleContent(content);
+      } catch (error) {
+        console.error('모듈 콘텐츠 로드 중 오류:', error);
+        // 오류 발생 시 동기 버전 사용 (fallback)
+        const { generateModuleContentSync } = await import('@/lib/content');
+        const content = generateModuleContentSync(moduleId, diagnosisResult || undefined);
+        setModuleContent(content);
+      }
+    };
+    
+    loadContent();
     
     // 사용자 정보 가져오기
     const user = getCurrentUser();
