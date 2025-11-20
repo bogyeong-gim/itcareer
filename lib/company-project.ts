@@ -193,3 +193,4 @@ export function getUserProjects(userId: string): CompanyProject[] {
   return allProjects.filter(p => p.participants.includes(userId));
 }
 
+

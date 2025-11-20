@@ -221,3 +221,4 @@ export function updatePortfolio(portfolio: Portfolio): Portfolio {
   return portfolio;
 }
 
+

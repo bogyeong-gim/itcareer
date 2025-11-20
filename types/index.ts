@@ -37,6 +37,7 @@ export type ModuleLevel = 'beginner' | 'intermediate' | 'advanced';
 export interface RoadmapModule {
   id: string;
   title: string;
+  subtitle?: string;
   description: string;
   duration: string;
   level: ModuleLevel;
@@ -45,6 +46,10 @@ export interface RoadmapModule {
   completedAt?: string;
   skills: string[];
   prerequisites?: string[];
+  provider?: string;
+  price?: string | number;
+  iconUrl?: string;
+  englishTitle?: string;
 }
 
 export interface Roadmap {
