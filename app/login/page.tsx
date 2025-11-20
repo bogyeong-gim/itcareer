@@ -17,19 +17,30 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
 
-    // 실제로는 API 호출
-    // 여기서는 간단한 검증
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      if (user.email === formData.email) {
-        localStorage.setItem('isLoggedIn', 'true');
-        router.push('/dashboard');
-        return;
+    try {
+      // 실제로는 API 호출
+      // 여기서는 간단한 검증
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          if (user.email === formData.email) {
+            localStorage.setItem('isLoggedIn', 'true');
+            router.push('/dashboard');
+            return;
+          }
+        } catch (parseError) {
+          console.error('사용자 데이터 파싱 오류:', parseError);
+          setError('사용자 정보를 불러오는 중 오류가 발생했습니다. 다시 시도해주세요.');
+          return;
+        }
       }
-    }
 
-    setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+      setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+    } catch (error) {
+      console.error('로그인 중 오류:', error);
+      setError('로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    }
   };
 
   return (

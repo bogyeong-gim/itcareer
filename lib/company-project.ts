@@ -16,7 +16,7 @@ const SAMPLE_COMPANIES: Company[] = [
   {
     id: '2',
     name: '토스',
-    industry: '핀테크',
+    industry: '핀테크', 
     techStack: ['React', 'TypeScript', 'Kotlin', 'Swift', 'Spring Boot', 'Kubernetes'],
     blogUrl: 'https://toss.tech',
     description: '금융 서비스를 쉽고 간편하게 만드는 핀테크 기업'
@@ -142,7 +142,7 @@ function generateProjectObjectives(
  * 사용자에게 추천할 프로젝트 가져오기
  */
 export function getRecommendedProjects(userId: string): CompanyProject[] {
-  const diagnosisResult = getFromStorage<DiagnosisResult>('diagnosisResults', null);
+  const diagnosisResult = getFromStorage<DiagnosisResult | null>('diagnosisResults', null);
   const allProjects = getFromStorage<CompanyProject[]>('companyProjects', []);
   
   // 사용자가 참여하지 않은 프로젝트만 필터링

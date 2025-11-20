@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, MessageSquare, BookOpen, CheckCircle } from 'lucide-react';
-import { ModuleContent, DiagnosisResult } from '@/types';
+import { ModuleContent, DiagnosisResult, Roadmap, RoadmapModule } from '@/types';
 import { generateModuleContent } from '@/lib/content';
 import { getFromStorage, saveToStorage, getCurrentUser } from '@/lib/utils';
 import { startModuleLearning, completeSection, completeModule, getModuleLearningHistory } from '@/lib/learning-history';
@@ -38,9 +38,9 @@ export default function ModulePage() {
         setCompletedSections(history.sectionsCompleted);
       } else {
         // 학습 시작
-        const roadmap = getFromStorage('roadmap', null);
+        const roadmap = getFromStorage<Roadmap>('roadmap', null);
         if (roadmap) {
-          const module = roadmap.modules.find((m: any) => m.id === moduleId);
+          const module = roadmap.modules.find((m: RoadmapModule) => m.id === moduleId);
           if (module) {
             startModuleLearning(user.id, module);
           }
@@ -54,30 +54,48 @@ export default function ModulePage() {
   }, [moduleId]);
   const handleSectionComplete = (sectionId: string) => {
     if (!completedSections.includes(sectionId)) {
-      const user = getCurrentUser();
-      const updated = [...completedSections, sectionId];
-      setCompletedSections(updated);
-      
-      if (user) {
-        // 회원인 경우 학습 이력에 저장
-        completeSection(user.id, moduleId, sectionId);
+      try {
+        const user = getCurrentUser();
+        const updated = [...completedSections, sectionId];
+        setCompletedSections(updated);
         
-        // 모든 섹션이 완료되었는지 확인
-        if (moduleContent && updated.length === moduleContent.sections.length) {
-          completeModule(user.id, moduleId);
+        if (user) {
+          // 회원인 경우 학습 이력에 저장
+          try {
+            completeSection(user.id, moduleId, sectionId);
+          } catch (error) {
+            console.error('섹션 완료 처리 중 오류:', error);
+            // 에러가 발생해도 UI는 업데이트
+          }
           
-          // 로드맵 업데이트
-          const roadmap = getFromStorage('roadmap', null);
-          if (roadmap) {
-            const updatedModules = roadmap.modules.map((m: any) =>
-              m.id === moduleId ? { ...m, completed: true, completedAt: new Date().toISOString() } : m
-            );
-            saveToStorage('roadmap', { ...roadmap, modules: updatedModules });
+          // 모든 섹션이 완료되었는지 확인
+          if (moduleContent && updated.length === moduleContent.sections.length) {
+            try {
+              completeModule(user.id, moduleId);
+              
+              // 로드맵 업데이트
+              const roadmap = getFromStorage<Roadmap>('roadmap', null);
+              if (roadmap) {
+                const updatedModules = roadmap.modules.map((m: RoadmapModule) =>
+                  m.id === moduleId ? { ...m, completed: true, completedAt: new Date().toISOString() } : m
+                );
+                saveToStorage('roadmap', { ...roadmap, modules: updatedModules });
+              }
+            } catch (error) {
+              console.error('모듈 완료 처리 중 오류:', error);
+            }
+          }
+        } else {
+          // 비회원인 경우 로컬 스토리지만 사용
+          try {
+            saveToStorage(`module-${moduleId}-progress`, updated);
+          } catch (error) {
+            console.error('진행률 저장 중 오류:', error);
           }
         }
-      } else {
-        // 비회원인 경우 로컬 스토리지만 사용
-        saveToStorage(`module-${moduleId}-progress`, updated);
+      } catch (error) {
+        console.error('섹션 완료 처리 중 오류:', error);
+        alert('섹션 완료 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
       }
     }
   };

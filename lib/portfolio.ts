@@ -84,8 +84,13 @@ function extractSkillsFromHistory(
   });
 
   // 진단 결과에서 필요한 역량 추가
-  if (diagnosisResult && (diagnosisResult as any).requiredSkills) {
-    (diagnosisResult as any).requiredSkills.forEach((skill: string) => {
+  // DiagnosisResult 타입에 requiredSkills가 없으므로 타입 가드 사용
+  interface DiagnosisResultWithSkills extends DiagnosisResult {
+    requiredSkills?: string[];
+  }
+  const diagnosisWithSkills = diagnosisResult as DiagnosisResultWithSkills | null;
+  if (diagnosisWithSkills?.requiredSkills) {
+    diagnosisWithSkills.requiredSkills.forEach((skill: string) => {
       if (!skillsMap.has(skill)) {
         skillsMap.set(skill, 20); // 기본 수준
       }

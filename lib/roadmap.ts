@@ -2,6 +2,92 @@ import { Roadmap, RoadmapModule, DiagnosisResult, ModuleLevel } from '@/types';
 import { extractRequiredSkills } from './diagnosis';
 
 /**
+ * 직무별 특화 모듈 생성
+ */
+function getJobSpecificModules(
+  targetJob: string | undefined,
+  baseLevel: ModuleLevel,
+  skills: string[]
+): RoadmapModule[] {
+  const job = targetJob?.toLowerCase() || '';
+  const modules: RoadmapModule[] = [];
+
+  if (job.includes('프론트엔드') || job.includes('frontend')) {
+    modules.push({
+      id: 'frontend-1',
+      title: 'React/Next.js 심화',
+      englishTitle: 'Advanced React & Next.js',
+      subtitle: 'Modern Frontend Development',
+      description: 'React Hooks, 상태 관리, Next.js의 서버 사이드 렌더링과 정적 생성 등을 심화 학습합니다.',
+      duration: '6주',
+      level: baseLevel === 'beginner' ? 'intermediate' : 'advanced',
+      order: modules.length + 1,
+      completed: false,
+      skills: ['React', 'Next.js', 'TypeScript', 'State Management'],
+      prerequisites: [],
+      provider: '인프런',
+      price: 99000
+    });
+  }
+
+  if (job.includes('백엔드') || job.includes('backend')) {
+    modules.push({
+      id: 'backend-1',
+      title: 'API 설계 및 마이크로서비스',
+      englishTitle: 'API Design & Microservices',
+      subtitle: 'Backend Architecture',
+      description: 'RESTful API 설계, GraphQL, 마이크로서비스 아키텍처, 분산 시스템 등을 학습합니다.',
+      duration: '8주',
+      level: baseLevel === 'beginner' ? 'intermediate' : 'advanced',
+      order: modules.length + 1,
+      completed: false,
+      skills: ['API Design', 'Microservices', 'System Design', 'Database Optimization'],
+      prerequisites: [],
+      provider: '인프런',
+      price: 120000
+    });
+  }
+
+  if (job.includes('데이터') || job.includes('data')) {
+    modules.push({
+      id: 'data-1',
+      title: '데이터 분석 및 시각화',
+      englishTitle: 'Data Analysis & Visualization',
+      subtitle: 'Data Science Fundamentals',
+      description: 'Python을 활용한 데이터 분석, 머신러닝 기초, 데이터 시각화 등을 학습합니다.',
+      duration: '10주',
+      level: baseLevel === 'beginner' ? 'intermediate' : 'advanced',
+      order: modules.length + 1,
+      completed: false,
+      skills: ['Python', 'Data Analysis', 'Machine Learning', 'Data Visualization'],
+      prerequisites: [],
+      provider: '인프런',
+      price: 150000
+    });
+  }
+
+  if (job.includes('ai') || job.includes('ml') || job.includes('머신러닝')) {
+    modules.push({
+      id: 'ai-1',
+      title: 'AI/ML 실무 프로젝트',
+      englishTitle: 'AI/ML Practical Projects',
+      subtitle: 'Machine Learning & Deep Learning',
+      description: '실제 데이터셋을 활용한 머신러닝 프로젝트, 딥러닝 모델 구축, 모델 배포 등을 학습합니다.',
+      duration: '12주',
+      level: 'advanced',
+      order: modules.length + 1,
+      completed: false,
+      skills: ['Machine Learning', 'Deep Learning', 'TensorFlow', 'PyTorch', 'Model Deployment'],
+      prerequisites: [],
+      provider: '인프런',
+      price: 200000
+    });
+  }
+
+  return modules;
+}
+
+/**
  * 진단 결과를 기반으로 로드맵 생성
  */
 export function generateRoadmap(result: DiagnosisResult, userId?: string): Roadmap {
@@ -13,7 +99,8 @@ export function generateRoadmap(result: DiagnosisResult, userId?: string): Roadm
     experience?.includes('신입') || experience?.includes('주니어') ? 'beginner' :
     experience?.includes('미들') ? 'intermediate' : 'advanced';
 
-  const modules: RoadmapModule[] = [
+  // 기본 모듈
+  const baseModules: RoadmapModule[] = [
     {
       id: '1',
       title: '기초 역량 강화',
@@ -78,11 +165,20 @@ export function generateRoadmap(result: DiagnosisResult, userId?: string): Roadm
     }
   ];
 
+  // 직무별 특화 모듈 추가
+  const jobSpecificModules = getJobSpecificModules(targetJob, baseLevel, skills);
+  
+  // 모든 모듈 결합 (기본 모듈 + 직무별 모듈)
+  const allModules = [...baseModules, ...jobSpecificModules].map((module, index) => ({
+    ...module,
+    order: index + 1
+  }));
+
   return {
     id: `roadmap-${Date.now()}`,
     userId,
     targetJob: targetJob || '개발자',
-    modules,
+    modules: allModules,
     createdAt: new Date().toISOString()
   };
 }

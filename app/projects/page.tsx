@@ -58,16 +58,24 @@ export default function ProjectsPage() {
   };
 
   const handleJoinProject = (projectId: string) => {
-    const user = getCurrentUser();
-    if (!user) return;
+    try {
+      const user = getCurrentUser();
+      if (!user) {
+        alert('로그인이 필요합니다.');
+        return;
+      }
 
-    const project = joinProject(projectId, user.id);
-    if (project) {
-      const projects = getRecommendedProjects(user.id);
-      setRecommendedProjects(projects);
-      alert('프로젝트에 참여했습니다!');
-    } else {
-      alert('프로젝트 참여에 실패했습니다.');
+      const project = joinProject(projectId, user.id);
+      if (project) {
+        const projects = getRecommendedProjects(user.id);
+        setRecommendedProjects(projects);
+        alert('프로젝트에 참여했습니다!');
+      } else {
+        alert('프로젝트 참여에 실패했습니다. 프로젝트가 이미 진행 중이거나 마감되었을 수 있습니다.');
+      }
+    } catch (error) {
+      console.error('프로젝트 참여 중 오류:', error);
+      alert('프로젝트 참여 중 오류가 발생했습니다. 다시 시도해주세요.');
     }
   };
 

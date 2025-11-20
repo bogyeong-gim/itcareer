@@ -29,18 +29,23 @@ export default function SignupPage() {
       return;
     }
 
-    // 실제로는 API 호출
-    // 여기서는 로컬 스토리지에 저장
-    const userData = {
-      name: formData.name,
-      email: formData.email,
-      createdAt: new Date().toISOString()
-    };
+    try {
+      // 실제로는 API 호출
+      // 여기서는 로컬 스토리지에 저장
+      const userData = {
+        name: formData.name,
+        email: formData.email,
+        createdAt: new Date().toISOString()
+      };
 
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('isLoggedIn', 'true');
-    
-    router.push('/dashboard');
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('isLoggedIn', 'true');
+      
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('회원가입 중 오류:', error);
+      setError('회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    }
   };
 
   return (

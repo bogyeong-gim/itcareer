@@ -215,6 +215,9 @@ export default function RoadmapGeneratePage() {
     setIsGenerating(true);
 
     try {
+      if (!topic || topic.trim().length === 0) {
+        throw new Error('학습 주제를 입력해주세요.');
+      }
       // 퀴즈 답변에서 정보 추출 (퀴즈 결과를 기반으로 수준 파악)
       const quizResults = assessmentAnswers.map(answer => {
         const question = quizQuestions.find(q => q.id === answer.questionId);
@@ -264,7 +267,10 @@ export default function RoadmapGeneratePage() {
       }, 1000);
     } catch (error) {
       console.error('로드맵 생성 중 오류:', error);
-      alert('로드맵 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : '로드맵 생성 중 오류가 발생했습니다. 다시 시도해주세요.';
+      alert(errorMessage);
       setIsGenerating(false);
     }
   };

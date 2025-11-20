@@ -15,10 +15,10 @@ export default function RoadmapPage() {
 
   useEffect(() => {
     // 로컬 스토리지에서 진단 결과 가져오기
-    const storedResult = getFromStorage<DiagnosisResult>('diagnosisResults', null);
+    const storedResult = getFromStorage<DiagnosisResult | null>('diagnosisResults', null);
     
     // 기존 로드맵이 있는지 확인
-    const existingRoadmap = getFromStorage<Roadmap>('roadmap', null);
+    const existingRoadmap = getFromStorage<Roadmap | null>('roadmap', null);
     
     if (existingRoadmap) {
       // 기존 로드맵이 있으면 사용
@@ -30,7 +30,7 @@ export default function RoadmapPage() {
     } else if (storedResult) {
       // 진단 결과가 있으면 로드맵 생성
       setDiagnosisResult(storedResult);
-      const user = getCurrentUser();
+      const user = getCurrentUser() as { id: string } | null;
       const newRoadmap = generateRoadmap(storedResult, user?.id);
       setRoadmap(newRoadmap);
       setProgress(0);
@@ -39,7 +39,7 @@ export default function RoadmapPage() {
       localStorage.setItem('roadmap', JSON.stringify(newRoadmap));
     } else {
       // 진단 결과가 없으면 기본 로드맵 생성
-      const user = getCurrentUser();
+      const user = getCurrentUser() as { id: string } | null;
       const defaultRoadmap = generateDefaultRoadmap(user?.id);
       setRoadmap(defaultRoadmap);
       setProgress(0);

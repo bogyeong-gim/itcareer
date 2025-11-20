@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Briefcase, FileText, Target, Settings, LogOut, Sparkles, TrendingUp, Clock, BookOpen, Award, CheckCircle } from 'lucide-react';
 import { User, Roadmap, DiagnosisResult, DashboardStats, LearningHistory } from '@/types';
-import { getFromStorage, isLoggedIn, getCurrentUser, calculateProgress, formatDate } from '@/lib/utils';
+import { getFromStorage, isLoggedIn, getCurrentUser, calculateProgress, formatDate, calculateCompletedProjects, calculateLearningStreak } from '@/lib/utils';
 import { calculateRoadmapProgress } from '@/lib/roadmap';
 
 export default function DashboardPage() {
@@ -56,14 +56,18 @@ export default function DashboardPage() {
         return sum;
       }, 0);
       
+      const user = getCurrentUser();
+      const projectsCompleted = user ? calculateCompletedProjects(user.id) : 0;
+      const currentStreak = user ? calculateLearningStreak(user.id) : 0;
+      
       setStats({
         totalModules: roadmapData.modules.length,
         completedModules,
         inProgressModules,
         totalLearningHours: Math.round(totalHours),
         skillsAcquired: roadmapData.modules.reduce((sum, m) => sum + m.skills.length, 0),
-        projectsCompleted: 0, // TODO: 프로젝트 데이터에서 계산
-        currentStreak: 0 // TODO: 연속 학습 일수 계산
+        projectsCompleted,
+        currentStreak
       });
     }
     
@@ -78,11 +82,34 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">로딩 중...</p>
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        <nav className="border-b border-gray-200 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </nav>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="mb-8">
+            <div className="h-10 bg-gray-200 rounded w-64 mb-2 animate-pulse"></div>
+            <div className="h-5 bg-gray-200 rounded w-96 animate-pulse"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                    <div className="h-8 bg-gray-200 rounded w-20"></div>
+                  </div>
+                  <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
       </div>
     );
   }

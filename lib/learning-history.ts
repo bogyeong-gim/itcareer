@@ -1,5 +1,6 @@
 import { LearningHistory, RoadmapModule } from '@/types';
 import { getFromStorage, saveToStorage, generateId } from './utils';
+import { generateModuleContent } from './content';
 
 /**
  * 학습 이력 저장
@@ -92,9 +93,18 @@ export function completeSection(
 
   const sectionsCompleted = [...new Set([...history.sectionsCompleted, sectionId])];
   
-  // 모듈의 전체 섹션 수 가져오기 (간단히 하드코딩, 실제로는 모듈 콘텐츠에서 가져와야 함)
-  const totalSections = 2; // 기본값
-  const progress = Math.round((sectionsCompleted.length / totalSections) * 100);
+  // 모듈의 전체 섹션 수 가져오기
+  let totalSections = 2; // 기본값
+  try {
+    const moduleContent = generateModuleContent(moduleId);
+    totalSections = moduleContent.sections.length;
+  } catch (error) {
+    console.warn(`모듈 콘텐츠를 가져올 수 없습니다 (moduleId: ${moduleId}). 기본값을 사용합니다.`, error);
+  }
+  
+  const progress = totalSections > 0 
+    ? Math.round((sectionsCompleted.length / totalSections) * 100)
+    : 0;
 
   return updateLearningHistory(history.id, progress, sectionsCompleted);
 }

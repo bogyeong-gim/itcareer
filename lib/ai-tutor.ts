@@ -2,17 +2,79 @@ import { TutorMessage, ModuleContent } from '@/types';
 import { generateId } from './utils';
 
 /**
- * AI Tutor 응답 생성 (시뮬레이션)
- * 실제로는 OpenAI API나 다른 AI 서비스를 사용할 수 있습니다.
+ * OpenAI API를 사용한 AI 응답 생성
+ */
+async function callOpenAIAPI(
+  question: string,
+  moduleContent: ModuleContent | null,
+  context?: string
+): Promise<string> {
+  const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+  const apiUrl = process.env.NEXT_PUBLIC_AI_API_URL || 'https://api.openai.com/v1/chat/completions';
+
+  if (!apiKey) {
+    throw new Error('OpenAI API 키가 설정되지 않았습니다.');
+  }
+
+  const systemPrompt = `당신은 친절하고 전문적인 AI 튜터입니다. 사용자의 질문에 대해 명확하고 도움이 되는 답변을 제공해주세요.
+${moduleContent ? `현재 학습 중인 모듈: ${moduleContent.title}\n설명: ${moduleContent.description}` : ''}
+${context ? `컨텍스트: ${context}` : ''}`;
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: question },
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `API 요청 실패: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0]?.message?.content || '응답을 생성할 수 없습니다.';
+  } catch (error) {
+    console.error('OpenAI API 호출 오류:', error);
+    throw error;
+  }
+}
+
+/**
+ * AI Tutor 응답 생성
+ * 환경 변수에 API 키가 설정되어 있으면 실제 API를 호출하고, 없으면 시뮬레이션 응답을 반환합니다.
  */
 export async function generateTutorResponse(
   question: string,
   moduleContent: ModuleContent | null,
   context?: string
 ): Promise<string> {
-  // 실제로는 AI API 호출
-  // 여기서는 컨텍스트 기반 시뮬레이션 응답 생성
-  
+  // 환경 변수 확인
+  const enableAITutor = process.env.NEXT_PUBLIC_ENABLE_AI_TUTOR === 'true';
+  const hasAPIKey = !!process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+
+  // API 키가 있고 AI Tutor가 활성화되어 있으면 실제 API 호출
+  if (enableAITutor && hasAPIKey) {
+    try {
+      return await callOpenAIAPI(question, moduleContent, context);
+    } catch (error) {
+      console.warn('AI API 호출 실패, 시뮬레이션 모드로 전환:', error);
+      // API 호출 실패 시 시뮬레이션 모드로 fallback
+    }
+  }
+
+  // 시뮬레이션 모드: 컨텍스트 기반 응답 생성
   const lowerQuestion = question.toLowerCase();
   
   // 로드맵 생성 컨텍스트 확인
