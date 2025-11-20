@@ -2,13 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-
-interface DiagnosisAnswer {
-  questionId: number;
-  answer: string | number;
-}
+import { DiagnosisQuestion, DiagnosisAnswer, DiagnosisResult } from '@/types';
+import { analyzeDiagnosisResults, extractRequiredSkills } from '@/lib/diagnosis';
+import { saveToStorage } from '@/lib/utils';
 
 export default function DiagnosisPage() {
   const router = useRouter();
@@ -16,7 +14,7 @@ export default function DiagnosisPage() {
   const [answers, setAnswers] = useState<DiagnosisAnswer[]>([]);
   const [isComplete, setIsComplete] = useState(false);
 
-  const questions = [
+  const questions: DiagnosisQuestion[] = [
     {
       id: 1,
       question: '현재 직무는 무엇인가요?',
@@ -31,7 +29,8 @@ export default function DiagnosisPage() {
         '마케터',
         '기타',
         '취준생 (직무 미정)'
-      ]
+      ],
+      required: true
     },
     {
       id: 2,
@@ -43,7 +42,8 @@ export default function DiagnosisPage() {
         '미들 (3-5년)',
         '시니어 (5-10년)',
         '리드 (10년 이상)'
-      ]
+      ],
+      required: true
     },
     {
       id: 3,
@@ -59,7 +59,8 @@ export default function DiagnosisPage() {
         '마케터',
         '기타',
         '현재 직무 유지 및 역량 강화'
-      ]
+      ],
+      required: true
     },
     {
       id: 4,
@@ -72,7 +73,8 @@ export default function DiagnosisPage() {
         '프로젝트 관리 능력',
         '리더십',
         '전문 도메인 지식'
-      ]
+      ],
+      required: true
     },
     {
       id: 5,
@@ -83,7 +85,8 @@ export default function DiagnosisPage() {
         '5-10시간',
         '10-20시간',
         '20시간 이상'
-      ]
+      ],
+      required: true
     }
   ];
 
@@ -105,17 +108,40 @@ export default function DiagnosisPage() {
     setAnswers(updatedAnswers);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < questions.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      // 진단 완료
+      // 진단 완료 - 결과 분석
       setIsComplete(true);
-      // 결과 페이지로 이동 (로컬 스토리지에 저장)
-      localStorage.setItem('diagnosisResults', JSON.stringify(answers));
-      setTimeout(() => {
-        router.push('/roadmap');
-      }, 2000);
+      
+      try {
+        // 진단 결과 분석
+        const diagnosisResult = analyzeDiagnosisResults(answers);
+        const requiredSkills = extractRequiredSkills(diagnosisResult);
+        
+        // 분석된 결과 저장
+        const fullResult = {
+          ...diagnosisResult,
+          requiredSkills
+        };
+        
+        saveToStorage('diagnosisResults', fullResult);
+        saveToStorage('diagnosisAnswers', answers);
+        
+        // 로드맵 생성 대기 시간 (분석 중 표시)
+        setTimeout(() => {
+          router.push('/roadmap');
+        }, 2000);
+      } catch (error) {
+        console.error('진단 결과 분석 중 오류:', error);
+        // 오류 발생 시에도 기본 결과 저장
+        saveToStorage('diagnosisResults', { answers, analyzedAt: new Date().toISOString() });
+        saveToStorage('diagnosisAnswers', answers);
+        setTimeout(() => {
+          router.push('/roadmap');
+        }, 2000);
+      }
     }
   };
 
@@ -130,10 +156,18 @@ export default function DiagnosisPage() {
   if (isComplete) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+        <div className="text-center max-w-md">
+          <div className="mb-6">
+            <Loader2 className="h-16 w-16 text-blue-600 mx-auto animate-spin mb-4" />
+            <CheckCircle className="h-12 w-12 text-green-500 mx-auto -mt-8" />
+          </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">진단이 완료되었습니다!</h2>
-          <p className="text-gray-600">맞춤형 로드맵을 생성하고 있습니다...</p>
+          <p className="text-gray-600 mb-4">진단 결과를 분석하고 있습니다...</p>
+          <div className="space-y-2 text-sm text-gray-500">
+            <p>• 현재 역량 수준 파악 중</p>
+            <p>• 목표 직무 역량 분석 중</p>
+            <p>• 맞춤형 로드맵 생성 중</p>
+          </div>
         </div>
       </div>
     );

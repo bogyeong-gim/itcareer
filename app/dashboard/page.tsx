@@ -3,23 +3,70 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Briefcase, FileText, Target, Settings, LogOut, Sparkles } from 'lucide-react';
+import { Briefcase, FileText, Target, Settings, LogOut, Sparkles, TrendingUp, Clock, BookOpen, Award, CheckCircle } from 'lucide-react';
+import { User, Roadmap, DiagnosisResult, DashboardStats, LearningHistory } from '@/types';
+import { getFromStorage, isLoggedIn, getCurrentUser, calculateProgress, formatDate } from '@/lib/utils';
+import { calculateRoadmapProgress } from '@/lib/roadmap';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
+  const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisResult | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
-    const userData = localStorage.getItem('user');
-    
-    if (!isLoggedIn || !userData) {
+    if (!isLoggedIn()) {
       router.push('/login');
       return;
     }
 
-    setUser(JSON.parse(userData));
+    const userData = getCurrentUser();
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+
+    setUser(userData);
+    
+    // 로드맵 데이터 가져오기
+    const roadmapData = getFromStorage<Roadmap>('roadmap', null);
+    setRoadmap(roadmapData);
+    
+    // 진단 결과 가져오기
+    const diagnosisData = getFromStorage<DiagnosisResult>('diagnosisResults', null);
+    setDiagnosisResult(diagnosisData);
+    
+    // 통계 계산
+    if (roadmapData) {
+      const progress = calculateRoadmapProgress(roadmapData);
+      const completedModules = roadmapData.modules.filter(m => m.completed).length;
+      const inProgressModules = roadmapData.modules.filter(m => !m.completed && progress > 0).length;
+      
+      // 학습 이력 가져오기
+      const learningHistory = getFromStorage<LearningHistory[]>('learningHistory', []);
+      const totalHours = learningHistory.reduce((sum, h) => {
+        if (h.completedAt) {
+          const start = new Date(h.startedAt);
+          const end = new Date(h.completedAt);
+          const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+          return sum + hours;
+        }
+        return sum;
+      }, 0);
+      
+      setStats({
+        totalModules: roadmapData.modules.length,
+        completedModules,
+        inProgressModules,
+        totalLearningHours: Math.round(totalHours),
+        skillsAcquired: roadmapData.modules.reduce((sum, m) => sum + m.skills.length, 0),
+        projectsCompleted: 0, // TODO: 프로젝트 데이터에서 계산
+        currentStreak: 0 // TODO: 연속 학습 일수 계산
+      });
+    }
+    
     setIsLoading(false);
   }, [router]);
 
@@ -66,9 +113,92 @@ export default function DashboardPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">대시보드</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            {user?.name}님, 환영합니다!
+          </h1>
           <p className="text-gray-600">커리어 성장을 위한 모든 도구를 한 곳에서</p>
         </div>
+
+        {/* Statistics Cards */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">로드맵 진행률</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {roadmap ? calculateRoadmapProgress(roadmap) : 0}%
+                  </p>
+                </div>
+                <div className="bg-blue-100 rounded-lg p-3">
+                  <TrendingUp className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">완료한 모듈</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {stats.completedModules} / {stats.totalModules}
+                  </p>
+                </div>
+                <div className="bg-green-100 rounded-lg p-3">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">총 학습 시간</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {stats.totalLearningHours}h
+                  </p>
+                </div>
+                <div className="bg-purple-100 rounded-lg p-3">
+                  <Clock className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">습득한 역량</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {stats.skillsAcquired}
+                  </p>
+                </div>
+                <div className="bg-orange-100 rounded-lg p-3">
+                  <Award className="h-6 w-6 text-orange-600" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Current Goal */}
+        {diagnosisResult && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-12 border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">현재 목표</h3>
+                <p className="text-2xl font-bold text-blue-600 mb-1">
+                  {diagnosisResult.targetJob || '목표 직무 설정'}
+                </p>
+                {diagnosisResult.currentJob && (
+                  <p className="text-sm text-gray-600">
+                    현재: {diagnosisResult.currentJob} → 목표: {diagnosisResult.targetJob}
+                  </p>
+                )}
+              </div>
+              <Target className="h-12 w-12 text-blue-600" />
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
@@ -112,33 +242,94 @@ export default function DashboardPage() {
             <div className="bg-orange-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
               <Briefcase className="h-6 w-6 text-orange-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">프로젝트</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">기업 프로젝트</h3>
             <p className="text-sm text-gray-600">실무 프로젝트 참여하기</p>
           </Link>
         </div>
+
+        {/* Current Roadmap Progress */}
+        {roadmap && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">현재 로드맵</h2>
+              <Link href="/roadmap" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                전체 보기 →
+              </Link>
+            </div>
+            <div className="space-y-4">
+              {roadmap.modules.slice(0, 3).map((module) => (
+                <div key={module.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      module.completed ? 'bg-green-500' : 'bg-blue-600'
+                    }`}>
+                      {module.completed ? (
+                        <CheckCircle className="h-6 w-6 text-white" />
+                      ) : (
+                        <span className="text-white font-semibold">{module.order}</span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{module.title}</p>
+                      <p className="text-sm text-gray-600">{module.description}</p>
+                    </div>
+                  </div>
+                  <Link 
+                    href={`/module/${module.id}`}
+                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  >
+                    {module.completed ? '복습하기' : '학습하기'} →
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Recent Activity */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <h2 className="text-2xl font-semibold text-gray-900 mb-6">최근 활동</h2>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium text-gray-900">역량 진단 완료</p>
-                <p className="text-sm text-gray-600">맞춤형 로드맵이 생성되었습니다</p>
+            {diagnosisResult && (
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-900">역량 진단 완료</p>
+                  <p className="text-sm text-gray-600">
+                    {formatDate(diagnosisResult.analyzedAt)} - 맞춤형 로드맵이 생성되었습니다
+                  </p>
+                </div>
+                <Link href="/roadmap" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                  보기 →
+                </Link>
               </div>
-              <Link href="/roadmap" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                보기 →
-              </Link>
-            </div>
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium text-gray-900">학습 모듈 진행 중</p>
-                <p className="text-sm text-gray-600">기초 역량 강화 모듈을 학습하고 있습니다</p>
+            )}
+            {roadmap && roadmap.modules.some(m => !m.completed) && (
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-900">학습 모듈 진행 중</p>
+                  <p className="text-sm text-gray-600">
+                    {roadmap.modules.find(m => !m.completed)?.title} 모듈을 학습하고 있습니다
+                  </p>
+                </div>
+                <Link 
+                  href={`/module/${roadmap.modules.find(m => !m.completed)?.id}`}
+                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                >
+                  계속하기 →
+                </Link>
               </div>
-              <Link href="/roadmap" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                계속하기 →
-              </Link>
-            </div>
+            )}
+            {(!diagnosisResult && !roadmap) && (
+              <div className="text-center py-8">
+                <p className="text-gray-600 mb-4">아직 활동 내역이 없습니다.</p>
+                <Link
+                  href="/diagnosis"
+                  className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+                >
+                  역량 진단 시작하기
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </main>

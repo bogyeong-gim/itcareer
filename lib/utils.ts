@@ -1,0 +1,126 @@
+// 유틸리티 함수들
+
+/**
+ * 로컬 스토리지에서 데이터 가져오기
+ */
+export function getFromStorage<T>(key: string, defaultValue: T): T {
+  if (typeof window === 'undefined') return defaultValue;
+  
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (error) {
+    console.error(`Error reading from localStorage key "${key}":`, error);
+    return defaultValue;
+  }
+}
+
+/**
+ * 로컬 스토리지에 데이터 저장하기
+ */
+export function saveToStorage<T>(key: string, value: T): void {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`Error saving to localStorage key "${key}":`, error);
+  }
+}
+
+/**
+ * 로컬 스토리지에서 데이터 삭제하기
+ */
+export function removeFromStorage(key: string): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(key);
+}
+
+/**
+ * 사용자 로그인 상태 확인
+ */
+export function isLoggedIn(): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem('isLoggedIn') === 'true';
+}
+
+/**
+ * 현재 사용자 정보 가져오기
+ */
+export function getCurrentUser() {
+  return getFromStorage('user', null);
+}
+
+/**
+ * 날짜 포맷팅
+ */
+export function formatDate(date: string | Date): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
+/**
+ * 날짜와 시간 포맷팅
+ */
+export function formatDateTime(date: string | Date): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+/**
+ * 진행률 계산
+ */
+export function calculateProgress(completed: number, total: number): number {
+  if (total === 0) return 0;
+  return Math.round((completed / total) * 100);
+}
+
+/**
+ * 레벨에 따른 색상 반환
+ */
+export function getLevelColor(level: 'beginner' | 'intermediate' | 'advanced'): string {
+  switch (level) {
+    case 'beginner':
+      return 'bg-green-100 text-green-700';
+    case 'intermediate':
+      return 'bg-yellow-100 text-yellow-700';
+    case 'advanced':
+      return 'bg-red-100 text-red-700';
+    default:
+      return 'bg-gray-100 text-gray-700';
+  }
+}
+
+/**
+ * 레벨 한글 변환
+ */
+export function getLevelLabel(level: 'beginner' | 'intermediate' | 'advanced'): string {
+  switch (level) {
+    case 'beginner':
+      return '초급';
+    case 'intermediate':
+      return '중급';
+    case 'advanced':
+      return '고급';
+    default:
+      return '미정';
+  }
+}
+
+/**
+ * 고유 ID 생성
+ */
+export function generateId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+

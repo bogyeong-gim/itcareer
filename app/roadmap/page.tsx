@@ -3,73 +3,40 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, BookOpen, CheckCircle, Clock, Target } from 'lucide-react';
-
-interface RoadmapModule {
-  id: string;
-  title: string;
-  description: string;
-  duration: string;
-  level: 'beginner' | 'intermediate' | 'advanced';
-  completed: boolean;
-}
+import { Roadmap, RoadmapModule, DiagnosisResult } from '@/types';
+import { generateRoadmap, calculateRoadmapProgress } from '@/lib/roadmap';
+import { getFromStorage, getCurrentUser, getLevelColor, getLevelLabel } from '@/lib/utils';
 
 export default function RoadmapPage() {
-  const [diagnosisData, setDiagnosisData] = useState<any>(null);
-  const [modules, setModules] = useState<RoadmapModule[]>([]);
+  const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
+  const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisResult | null>(null);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     // 로컬 스토리지에서 진단 결과 가져오기
-    const stored = localStorage.getItem('diagnosisResults');
-    if (stored) {
-      const results = JSON.parse(stored);
-      setDiagnosisData(results);
-      generateRoadmap(results);
+    const storedResult = getFromStorage<DiagnosisResult>('diagnosisResults', null);
+    
+    if (storedResult) {
+      setDiagnosisResult(storedResult);
+      
+      // 기존 로드맵이 있는지 확인
+      const existingRoadmap = getFromStorage<Roadmap>('roadmap', null);
+      
+      if (existingRoadmap) {
+        setRoadmap(existingRoadmap);
+        setProgress(calculateRoadmapProgress(existingRoadmap));
+      } else {
+        // 새 로드맵 생성
+        const user = getCurrentUser();
+        const newRoadmap = generateRoadmap(storedResult, user?.id);
+        setRoadmap(newRoadmap);
+        setProgress(0);
+        
+        // 로컬 스토리지에 저장
+        localStorage.setItem('roadmap', JSON.stringify(newRoadmap));
+      }
     }
   }, []);
-
-  const generateRoadmap = (results: any[]) => {
-    // 진단 결과를 기반으로 로드맵 생성 (간단한 예시)
-    const targetJob = results.find(r => r.questionId === 3)?.answer || '개발자 (풀스택)';
-    const experience = results.find(r => r.questionId === 2)?.answer || '주니어 (1-3년)';
-    
-    // 목표 직무에 따른 모듈 생성
-    const generatedModules: RoadmapModule[] = [
-      {
-        id: '1',
-        title: '기초 역량 강화',
-        description: '목표 직무에 필요한 기본 기술과 개념을 학습합니다.',
-        duration: '4주',
-        level: 'beginner',
-        completed: false
-      },
-      {
-        id: '2',
-        title: '실무 프로젝트 경험',
-        description: '실제 프로젝트를 통해 실무 역량을 키웁니다.',
-        duration: '6주',
-        level: 'intermediate',
-        completed: false
-      },
-      {
-        id: '3',
-        title: '포트폴리오 구축',
-        description: '학습한 내용을 바탕으로 포트폴리오를 작성합니다.',
-        duration: '2주',
-        level: 'intermediate',
-        completed: false
-      },
-      {
-        id: '4',
-        title: '면접 준비 및 네트워킹',
-        description: '면접 스킬과 커뮤니티 활동을 통해 커리어를 확장합니다.',
-        duration: '3주',
-        level: 'advanced',
-        completed: false
-      }
-    ];
-
-    setModules(generatedModules);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -87,15 +54,38 @@ export default function RoadmapPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">맞춤형 커리어 로드맵</h1>
-          <p className="text-xl text-gray-600">
-            진단 결과를 바탕으로 개인화된 학습 경로를 제시합니다.
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">맞춤형 커리어 로드맵</h1>
+              <p className="text-xl text-gray-600">
+                {diagnosisResult?.targetJob ? `${diagnosisResult.targetJob}로 가는 길` : '진단 결과를 바탕으로 개인화된 학습 경로를 제시합니다.'}
+              </p>
+            </div>
+            {roadmap && (
+              <div className="text-right">
+                <div className="text-2xl font-bold text-blue-600">{progress}%</div>
+                <div className="text-sm text-gray-600">진행률</div>
+              </div>
+            )}
+          </div>
+          
+          {/* Progress Bar */}
+          {roadmap && (
+            <div className="mt-4">
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div
+                  className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Roadmap Timeline */}
-        <div className="space-y-6">
-          {modules.map((module, index) => (
+        {roadmap && (
+          <div className="space-y-6">
+          {roadmap.modules.map((module, index) => (
             <div key={module.id} className="relative">
               {/* Timeline Line */}
               {index < modules.length - 1 && (
@@ -121,12 +111,8 @@ export default function RoadmapPage() {
                       <h3 className="text-xl font-semibold text-gray-900 mb-2">{module.title}</h3>
                       <p className="text-gray-600">{module.description}</p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      module.level === 'beginner' ? 'bg-green-100 text-green-700' :
-                      module.level === 'intermediate' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
-                      {module.level === 'beginner' ? '초급' : module.level === 'intermediate' ? '중급' : '고급'}
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getLevelColor(module.level)}`}>
+                      {getLevelLabel(module.level)}
                     </span>
                   </div>
                   
@@ -148,26 +134,41 @@ export default function RoadmapPage() {
             </div>
           ))}
         </div>
-
-        {/* CTA Section */}
-        <div className="mt-12 bg-blue-50 rounded-xl p-8 border border-blue-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                포트폴리오 자동 생성 기능을 사용하시겠어요?
-              </h3>
-              <p className="text-gray-600">
-                학습 이력을 기반으로 커리어 포트폴리오를 자동으로 생성할 수 있습니다.
-              </p>
-            </div>
+        )}
+        
+        {!roadmap && (
+          <div className="text-center py-12">
+            <p className="text-gray-600 mb-4">진단 결과가 없습니다.</p>
             <Link
-              href="/signup"
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 whitespace-nowrap"
+              href="/diagnosis"
+              className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
             >
-              회원가입하기
+              역량 진단 시작하기
             </Link>
           </div>
-        </div>
+        )}
+
+        {/* CTA Section */}
+        {roadmap && (
+          <div className="mt-12 bg-blue-50 rounded-xl p-8 border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  포트폴리오 자동 생성 기능을 사용하시겠어요?
+                </h3>
+                <p className="text-gray-600">
+                  학습 이력을 기반으로 커리어 포트폴리오를 자동으로 생성할 수 있습니다.
+                </p>
+              </div>
+              <Link
+                href="/signup"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 whitespace-nowrap"
+              >
+                회원가입하기
+              </Link>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
